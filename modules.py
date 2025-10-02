@@ -99,4 +99,49 @@ class ConvNexStage(nn.Sequential):
 stage = ConvNexStage(32, 64, depth=2)
 print(stage(x).shape)
 
+#Simulates the first layer in the model that does the heavy downsampling of the input image.
+class ConvNextStem(nn.Sequential):
+    def __init__(self, in_features: int, out_features: int):
+        super().__init__(
+            ConvNormAct(
+                in_features, out_features, kernel_size=7, stride=2
+            ),
+            nn.MaxPool2d(kernel_size=3, stride=2, padding=1),
+        )
 
+#A class that holds a list of stages and takes an image as input producing the final embeddings.
+class ConvNextEncoder(nn.Module):
+    def __init__(
+        self,
+        in_channels: int,
+        stem_features: int,
+        depths: List[int],
+        widths: List[int],
+    ):
+        super().__init__()
+        self.stem = ConvNextStem(in_channels, stem_features)
+
+        in_out_widths = list(zip(widths, widths[1:]))
+
+        self.stages = nn.ModuleList(
+            [
+                ConvNexStage(stem_features, widths[0], depths[0], stride=1),
+                *[
+                    ConvNexStage(in_features, out_features, depth)
+                    for (in_features, out_features), depth in zip(
+                        in_out_widths, depths[1:]
+                    )
+                ],
+            ]
+        )
+
+    def forward(self, x):
+        x = self.stem(x)
+        for stage in self.stages:
+            x = stage(x)
+        return x
+
+#code to check if the ConvNextEncoder works as intended
+image = torch.rand(1, 3, 224, 224)
+encoder = ConvNextEncoder(in_channels=3, stem_features=64, depths=[3,4,6,4], widths=[256, 512, 1024, 2048])
+encoder(image).shape
