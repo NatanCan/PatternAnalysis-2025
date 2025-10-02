@@ -2,6 +2,8 @@
  The term “ConvNeXt” is often used to refer to a type of deep learning model used for feature extraction on datasets in the learning process. 
  This type of model is part of a deep learning subfield called convolutional neural networks (CNN).
  ConvNext models consist of convolutional layers followed by fully connected layers.
+
+ ConvNeXt model was created by following the resource in this GitHub repository: https://github.com/FrancescoSaverioZuppichini/ConvNext.
 """
 from torch import nn
 from torch import Tensor
