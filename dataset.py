@@ -1,13 +1,13 @@
 import torch
-from torch.utils.data import Dataset
+from torch.utils.data import Dataset as dsets
+from torch.utils.data import DataLoader
 from torchvision import transforms
 from PIL import Image
-import pandas as pd
 import os
-
-class ADNIDataset(Dataset):
-    def __init__(self, csv_file, img_dir, transform=None):
-        self.data = pd.read_csv(csv_file)
+path = r"C:\Users\Nathan\Documents\AD_NC"
+batch_size = 256
+class ADNIDataset(dsets):
+    def __init__(self, img_dir, transform=None):
         self.img_dir = img_dir
         self.transform = transform
 
@@ -33,3 +33,20 @@ class ADNIDataset(Dataset):
                                 std=[0.229, 0.224, 0.225])
         ])
     
+
+    def com_dsets(self):
+        ADset = dsets.ImageFolder(root=f"{path}\\train\\AD", transform=self.get_transforms())
+        NCset = dsets.ImageFolder(root=f"{path}\\train\\NC", transform=self.get_transforms())
+        fullTrain = torch.concat((ADset, NCset), 0)
+        return fullTrain
+
+    def load_data(self, path):
+        fTrainSet = dsets.ImageFolder(root=f"{path}\\train", transform=self.get_transforms())
+        TestSet = dsets.ImageFolder(root=f"{path}\\test", transform=self.get_transforms())
+
+
+        #Creating the data Loaders (Copied from part 3)
+        train_loader = DataLoader(dataset=train_dataset, batch_size=b_size, shuffle=True)
+        #val_loader = DataLoader(dataset=val_dataset, batch_size=b_size, shuffle=False)
+        test_loader = DataLoader(dataset=TestSet, batch_size=b_size, shuffle=False) 
+
