@@ -51,3 +51,22 @@ for epoch in range(Epochs):
     train_loss.append(epoch_loss)
     print(f"Epoch [{epoch+1}/{Epochs}], Training Loss: {epoch_loss:.4f}")
 
+    #Validation phase
+    model.eval()
+    val_running_loss = 0.0
+    all_preds = []
+    all_labels = []
+    with torch.no_grad():
+        for images, labels in val_loader:
+            outputs = model(images)
+            loss = criteria(outputs, labels)
+            val_running_loss += loss.item()
+            _, preds = torch.max(outputs, 1)
+            all_preds.extend(preds.cpu().numpy())
+            all_labels.extend(labels.cpu().numpy())
+    val_epoch_loss = val_running_loss / len(val_loader)
+    val_loss.append(val_epoch_loss)
+    val_acc = accuracy_score(all_labels, all_preds)
+    val_accs.append(val_acc)
+    print(f"Epoch [{epoch+1}/{Epochs}], Validation Loss: {val_epoch_loss:.4f}, Validation Accuracy: {val_acc:.4f}")
+    
