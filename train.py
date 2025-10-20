@@ -70,3 +70,12 @@ for epoch in range(Epochs):
     val_accs.append(val_acc)
     print(f"Epoch [{epoch+1}/{Epochs}], Validation Loss: {val_epoch_loss:.4f}, Validation Accuracy: {val_acc:.4f}")
     
+# Save model
+os.makedirs("checkpoints", exist_ok=True)
+torch.save(model.state_dict(), "checkpoints/convnext_adni.pth")
+# Plot curves
+plt.plot(train_loss, label="Train Loss")
+plt.plot(val_loss, label="Val Loss")
+plt.plot(val_accs, label="Val Acc")
+plt.legend()
+plt.savefig("training_curves.png")
