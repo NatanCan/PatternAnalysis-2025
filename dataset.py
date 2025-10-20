@@ -1,12 +1,13 @@
 import torch
-from torch.utils.data import Dataset as dsets
+from torchvision import datasets as dsets
+from torch.utils.data import Dataset
 from torch.utils.data import DataLoader
 from torchvision import transforms
 from PIL import Image
 import os
-path = r"C:\Users\Nathan\Documents\AD_NC"
+
 b_size = 256
-class ADNIDataset(dsets):
+class ADNIDataset(Dataset):
     def __init__(self, img_dir, transform=None):
         self.img_dir = img_dir
         self.transform = transform
@@ -25,7 +26,7 @@ class ADNIDataset(dsets):
         return image, label
     
     # Transforms for ConvNeXt input
-    def get_transforms():
+    def get_transforms(self):
         return transforms.Compose([
             transforms.Resize((224, 224)),
             transforms.ToTensor(),
@@ -34,7 +35,7 @@ class ADNIDataset(dsets):
         ])
     
 
-    def com_dsets(self):
+    def com_dsets(self, path):
         ADset = dsets.ImageFolder(root=f"{path}\\train\\AD", transform=self.get_transforms())
         NCset = dsets.ImageFolder(root=f"{path}\\train\\NC", transform=self.get_transforms())
         fullTrain = torch.concat((ADset, NCset), 0)
@@ -44,7 +45,7 @@ class ADNIDataset(dsets):
         return fullTrain, fullTest
 
     def load_data(self, path):
-        TrainSet, TestSet = self.com_dsets()
+        TrainSet, TestSet = self.com_dsets(path)
         train_size = int(0.8*len(TrainSet))
         val_size = len(TrainSet) - train_size
         train_dset, val_dset = torch.utils.data.random_split(TrainSet, [train_size, val_size])
