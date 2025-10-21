@@ -41,20 +41,20 @@ class BottleNeck(nn.Module):
         self,
         in_features: int,
         out_features: int,
-        reduction: int = 4,
+        expansion: int = 4,
         stride: int = 1,
     ):
         super().__init__()
-        reduced_features = out_features // reduction
+        e_features = out_features * expansion
         self.block = nn.Sequential(
-            # wide -> narrow
-            ConvNormAct(
-                in_features, reduced_features, kernel_size=1, stride=stride, bias=False
-            ),
-            # narrow -> narrow
-            ConvNormAct(reduced_features, reduced_features, kernel_size=3, bias=False),
             # narrow -> wide
-            ConvNormAct(reduced_features, out_features, kernel_size=1, bias=False, act=nn.Identity),
+            ConvNormAct(
+                in_features, e_features, kernel_size=1, stride=stride, bias=False
+            ),
+            # wide -> wide
+            ConvNormAct(e_features, e_features, kernel_size=3, bias=False),
+            # wide -> anrrow
+            ConvNormAct(e_features, out_features, kernel_size=1, bias=False, act=nn.Identity),
         )
         self.shortcut = (
             nn.Sequential(
@@ -105,10 +105,10 @@ print(stage(x).shape)
 class ConvNextStem(nn.Sequential):
     def __init__(self, in_features: int, out_features: int):
         super().__init__(
-            ConvNormAct(
-                in_features, out_features, kernel_size=7, stride=2
+            nn.Conv2d(
+                in_features, out_features, kernel_size=4, stride=4
             ),
-            nn.MaxPool2d(kernel_size=3, stride=2, padding=1),
+            nn.BatchNorm2d(out_features),
         )
 
 #A class that holds a list of stages and takes an image as input producing the final embeddings.
@@ -145,7 +145,6 @@ class ConvNextEncoder(nn.Module):
 
 #code to check if the ConvNextEncoder works as intended
 image = torch.rand(1, 3, 224, 224)
-encoder = ConvNextEncoder(in_channels=3, stem_features=64, depths=[3,4,6,4], widths=[256, 512, 1024, 2048])
+encoder = ConvNextEncoder(in_channels=3, stem_features=64, depths=[3,3,9,3], widths=[256, 512, 1024, 2048])
 encoder(image).shape
 
-encoder = ConvNextEncoder(in_channels=3, stem_features=64, depths=[3,3,9,3], widths=[256, 512, 1024, 2048])
