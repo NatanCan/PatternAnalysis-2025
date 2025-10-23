@@ -9,6 +9,7 @@ from torch import nn
 from torch import Tensor
 from typing import List
 import timm
+from torchvision.ops import StochasticDepth
 
 #First implement a resnet model as ConvNeXt starts with a ResNet architecture and then applies a series of transformer-inspired design changes to it.
 class ConvNormAct(nn.Sequential):
@@ -36,70 +37,80 @@ class ConvNormAct(nn.Sequential):
             act(),
         )
 
+#Reduces training time and improves generalization by randomly dropping entire layers during training. Method allows for avoiding vanishing gradients and allowing for
+#regularization.
+class LayerScaler(nn.Module):
+    def __init__(self, init_value: float, dimensions: int):
+        super().__init__()
+        self.gamma = nn.Parameter(init_value * torch.ones((dimensions)), 
+                                    requires_grad=True)
+        
+    def forward(self, x):
+        return self.gamma[None,...,None,None] * x
+
 class BottleNeck(nn.Module):
     def __init__(
         self,
         in_features: int,
         out_features: int,
         expansion: int = 4,
-        stride: int = 1,
     ):
         super().__init__()
-        e_features = out_features * expansion
+        expanded_features = out_features * expansion
         self.block = nn.Sequential(
-            # narrow -> wide
-            ConvNormAct(
-                in_features, e_features, kernel_size=1, stride=stride, bias=False
+            # narrow -> wide (with depth-wise and bigger kernel)
+            nn.Conv2d(
+                in_features, in_features, kernel_size=7, padding=3, bias=False, groups=in_features
             ),
-            # wide -> wide
-            ConvNormAct(e_features, e_features, kernel_size=3, bias=False),
-            # wide -> anrrow
-            ConvNormAct(e_features, out_features, kernel_size=1, bias=False, act=nn.Identity),
+            # GroupNorm with num_groups=1 is the same as LayerNorm but works for 2D data
+            nn.GroupNorm(num_groups=1, num_channels=in_features),
+            # wide -> wide 
+            nn.Conv2d(in_features, expanded_features, kernel_size=1),
+            nn.GELU(),
+            # wide -> narrow
+            nn.Conv2d(expanded_features, out_features, kernel_size=1),
         )
+             # If input and output channels differ, use a 1x1 conv to project residual
         self.shortcut = (
-            nn.Sequential(
-                ConvNormAct(
-                    in_features, out_features, kernel_size=1, stride=stride, bias=False
-                )
-            )
-            if in_features != out_features
-            else nn.Identity()
+            nn.Conv2d(in_features, out_features, kernel_size=1)
+            if in_features != out_features else nn.Identity()
         )
-
-        self.act = nn.ReLU()
 
     def forward(self, x: Tensor) -> Tensor:
-        res = x
+        res = self.shortcut(x)
         x = self.block(x)
-        res = self.shortcut(res)
         x += res
-        x = self.act(x)
         return x
+    
+import torch
 
 #Check if the code above works    
-import torch
-x = torch.rand(1, 32, 7, 7)
-block = BottleNeck(32, 64)
-block(x).shape
-print(block(x).shape)
 
+x = torch.rand(1, 32, 7, 7)
+block = BottleNeck(32, 62)
+print(block(x).shape)
 #Code to define a stage, which is a sequence of bottleneck blocks that reduce in size as stages progress by a factor of 2.
 class ConvNexStage(nn.Sequential):
     def __init__(
-        self, in_features: int, out_features: int, depth: int, stride: int = 2, **kwargs
+        self, in_features: int, out_features: int, depth: int, **kwargs
     ):
         super().__init__(
-            # downsample is done here
-            BottleNeck(in_features, out_features, stride=stride, **kwargs),
+            # add the downsampler
+            nn.Sequential(
+                nn.GroupNorm(num_groups=1, num_channels=in_features),
+                nn.Conv2d(in_features, out_features, kernel_size=2, stride=2)
+            ),
             *[
                 BottleNeck(out_features, out_features, **kwargs)
-                for _ in range(depth - 1)
+                for _ in range(depth)
             ],
         )
 
 #Check staging class works as intended
-stage = ConvNexStage(32, 64, depth=2)
-print(stage(x).shape)
+"""
+stage = ConvNexStage(32, 62, depth=1)
+stage(torch.randn(1, 32, 14, 14)).shape
+"""
 
 #Simulates the first layer in the model that does the heavy downsampling of the input image.
 class ConvNextStem(nn.Sequential):
@@ -127,7 +138,7 @@ class ConvNextEncoder(nn.Module):
 
         self.stages = nn.ModuleList(
             [
-                ConvNexStage(stem_features, widths[0], depths[0], stride=1),
+                ConvNexStage(stem_features, widths[0], depths[0]),
                 *[
                     ConvNexStage(in_features, out_features, depth)
                     for (in_features, out_features), depth in zip(
@@ -148,3 +159,5 @@ image = torch.rand(1, 3, 224, 224)
 encoder = ConvNextEncoder(in_channels=3, stem_features=64, depths=[3,3,9,3], widths=[256, 512, 1024, 2048])
 encoder(image).shape
 
+stage = ConvNexStage(32, 62, depth=1)
+stage(torch.randn(1, 32, 14, 14)).shape
