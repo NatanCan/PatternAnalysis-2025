@@ -11,17 +11,18 @@ from modules import ADNIConvNeXt
 from dataset import ADNIDataset
 
 #Hyperparameters
-Epochs = 18
-batch_size = 32
+Epochs = 300
+batch_size = 256
 learning_rate = 1e-4
 
 #Checking if GPU is available 
 print("Checking for GPU...")
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+print(f"Using device: {device}")
 
 #Paths for datasets
 print("Loading Dataset...")
-path = path = r"C:\Users\Nathan\Documents\AD_NC"
+path = r"C:\Users\Nathan\Documents\AD_NC"
 ADNIDset = ADNIDataset(img_dir=r"C:\Users\Nathan\Documents\AD_NC", b_size=batch_size)
 train_loader, val_loader, test_loader = ADNIDset.load_data(path)
 
@@ -36,10 +37,10 @@ train_loader, val_loader, test_loader = ADNIDset.load_data(path)
         **kwargs
     ):"""
 print("Initializing Model...")
-model = ADNIConvNeXt(in_features=1, out_features=2).to(device)
+model = ADNIConvNeXt(in_features=3, out_features=2).to(device)
 criteria = nn.CrossEntropyLoss()
 totStep = len(train_loader)
-optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
+optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate, weight_decay=0.05)
 
 #storing loss values and validation accuracy
 train_loss, val_loss, val_accs = [],[],[]
