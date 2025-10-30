@@ -4,14 +4,18 @@ from torch.utils.data import DataLoader, random_split
 from torchvision import transforms
 
 class ADNIDataset:
-    def __init__(self, img_dir, b_size=32):
+    def __init__(self, img_dir, b_size=32, mode='train'):
         self.img_dir = img_dir
         self.b_size = b_size
+        
+        # CORRECTED transform - ensures 3-channel output
         self.transform = transforms.Compose([
-            transforms.Grayscale(num_output_channels=1),
+            transforms.Grayscale(num_output_channels=1),  # First convert to grayscale
             transforms.Resize((224, 224)),
             transforms.ToTensor(),
-            transforms.Normalize(mean=[0.5], std=[0.5])
+            transforms.Lambda(lambda x: x.repeat(3, 1, 1)), 
+            transforms.Normalize(mean=[0.485, 0.456, 0.406],  # ImageNet stats for 3 channels
+                               std=[0.229, 0.224, 0.225])
         ])
 
     def get_transforms(self):
