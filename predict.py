@@ -10,15 +10,8 @@ batch_size = 256
 path = r"C:\Users\Nathan\Documents\AD_NC"
 ADNIDset = ADNIDataset(img_dir=r"C:\Users\Nathan\Documents\AD_NC", b_size=batch_size)
 _, _, test_loader = ADNIDset.load_data(path)
-def check_data_loader(loader, name):
-    print(f"\n=== {name} Data Check ===")
-    for images, labels in loader:
-        print(f"Batch shape: {images.shape}")
-        print(f"Label distribution: {torch.bincount(labels)}")
-        print(f"Image stats - Mean: {images.mean():.3f}, Std: {images.std():.3f}")
-        print(f"Value range: [{images.min():.3f}, {images.max():.3f}]")
-        break
-check_data_loader(test_loader, "Test")
+
+
 #Checking if GPU is available 
 print("Checking for GPU...")
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -46,7 +39,7 @@ with torch.no_grad():
 
 # === Metrics ===
 acc = accuracy_score(all_labels, all_preds)
-print(f"\n✅ Test Accuracy: {acc:.4f}")
+print(f"\n Test Accuracy: {acc:.4f}")
 
 print("\nConfusion Matrix:")
 print(confusion_matrix(all_labels, all_preds))
