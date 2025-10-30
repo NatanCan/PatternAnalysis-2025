@@ -197,3 +197,21 @@ class ConvNextForImageClassification(nn.Sequential):
         self.head = ClassificationHead(widths[-1], num_classes)
 
 
+class ADNIConvNeXt(nn.Module):
+    def __init__(self, in_features=1, out_features=2):
+        super().__init__()
+        self.model = ConvNextForImageClassification(
+            in_channels=in_features,
+            stem_features=96,          # smaller model variant (ConvNeXt-Tiny)
+            depths=[3,3,9,3],
+            widths=[96, 192, 384, 768],
+            drop_p=0.1,
+            num_classes=out_features
+        )
+
+    def forward(self, x):
+        # explicitly call encoder and head
+        x = self.model.encoder(x)
+        x = self.model.head(x)
+        return x
+    
