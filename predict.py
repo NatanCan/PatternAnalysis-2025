@@ -1,10 +1,21 @@
 import torch
 from torchvision import transforms
+from dataset import ADNIDataset
 from PIL import Image
 from modules import ADNIConvNeXt
 
+batch_size = 32
+path = r"C:\Users\Nathan\Documents\AD_NC"
+ADNIDset = ADNIDataset(img_dir=r"C:\Users\Nathan\Documents\AD_NC", b_size=batch_size)
+_, _, test_loader = ADNIDset.load_data(path)
+
+
+#Checking if GPU is available 
+print("Checking for GPU...")
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
 # Load model
-model = ADNIConvNeXt()
+model = ADNIConvNeXt().to(device)
 model.load_state_dict(torch.load("checkpoints/convnext_adni.pth", map_location="cpu"))
 model.eval()
 
@@ -20,8 +31,8 @@ def preprocess(img_path):
     return transform(img).unsqueeze(0)
 
 # Predict
-img_path = "test_image.jpg"
-img = preprocess(img_path)
+
+img = preprocess(test_loader)
 outputs = model(img)
 pred = torch.argmax(outputs, dim=1).item()
 
