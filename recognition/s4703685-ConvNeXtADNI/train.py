@@ -11,9 +11,9 @@ from modules import ADNIConvNeXt
 from dataset import ADNIDataset
 
 #Hyperparameters
-Epochs = 300
-batch_size = 256
-learning_rate = 1e-4
+Epochs = 60
+batch_size = 128
+learning_rate = 3e-5
 
 #Checking if GPU is available 
 print("Checking for GPU...")
@@ -26,10 +26,10 @@ path = r"C:\Users\Nathan\Documents\AD_NC"
 ADNIDset = ADNIDataset(img_dir=r"C:\Users\Nathan\Documents\AD_NC", b_size=batch_size)
 train_loader, val_loader, test_loader = ADNIDset.load_data(path)
 
-#model
+#model description
 """def __init__(
         self,
-        in_features: int, (1 since its grayscale)
+        in_features: int, (3 RGB inputs)
         out_features: int, (2 since its either AD or NC)
         kernel_size: int, (3 is standard)
         norm = nn.BatchNorm2d,
@@ -37,6 +37,8 @@ train_loader, val_loader, test_loader = ADNIDset.load_data(path)
         **kwargs
     ):"""
 print("Initializing Model...")
+
+#Initialize the ADNI ConvNeXt model, loss function, and optimizer.
 model = ADNIConvNeXt(in_features=3, out_features=2).to(device)
 criteria = nn.CrossEntropyLoss()
 totStep = len(train_loader)
@@ -46,8 +48,11 @@ optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate, weight_decay=
 train_loss, val_loss, val_accs = [],[],[]
 print("Starting Training...")
 
+#Model training and validation loop
 for epoch in range(Epochs):
     start = time.time() #time generation
+    
+    #Training phase
     model.train()
     running_loss = 0.0
     for i, (images, labels) in enumerate(train_loader):
@@ -65,6 +70,7 @@ for epoch in range(Epochs):
     print(f"Epoch [{epoch+1}/{Epochs}], Training Loss: {epoch_loss:.4f}")
     end = time.time()
     print(f"Training took {(end-start)/60:.1f} minutes")
+    
     #Validation phase
     model.eval()
     val_running_loss = 0.0
@@ -88,9 +94,28 @@ for epoch in range(Epochs):
 # Save model
 os.makedirs("checkpoints", exist_ok=True)
 torch.save(model.state_dict(), "checkpoints/convnext_adni.pth")
-# Plot curves
-plt.plot(train_loss, label="Train Loss")
-plt.plot(val_loss, label="Val Loss")
-plt.plot(val_accs, label="Val Acc")
+
+# === Plot loss curves ===
+plt.figure(figsize=(10, 5))
+plt.plot(train_loss, label='Train Loss', color='blue', linewidth=2)
+plt.plot(val_loss, label='Validation Loss', color='orange', linewidth=2)
+plt.title("Training vs Validation Loss")
+plt.xlabel("Epoch")
+plt.ylabel("Loss")
 plt.legend()
-plt.savefig("training_curves.png")
+plt.grid(True)
+plt.tight_layout()
+plt.savefig("loss_curve.png")
+plt.show()
+
+# === Plot accuracy curve ===
+plt.figure(figsize=(10, 5))
+plt.plot(val_accs, label='Validation Accuracy', color='green', linewidth=2)
+plt.title("Validation Accuracy over Epochs")
+plt.xlabel("Epoch")
+plt.ylabel("Accuracy")
+plt.legend()
+plt.grid(True)
+plt.tight_layout()
+plt.savefig("val_accuracy_curve.png")
+plt.show()
