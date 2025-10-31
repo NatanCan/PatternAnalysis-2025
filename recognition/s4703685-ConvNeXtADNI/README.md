@@ -1,8 +1,8 @@
 # COMP3710 Report Code
 ## Introduction
-This project aims to implement a vision model to classify brain MRI data from the Alzheimer's Disease Neuroimaging Initiative (ADNI), and categorise them as either having Alzheimer's Disease (AD) or Normal Cognitive functions (NC).
+This project aims to implement a vision model to classify Alzheimer's Disease from MRI scans provided by the Alzheimer's Disease (AD) Neuroimaging Initiative (ADNI). The algorithm's task is to distinguish and categorise whether the current image being analysed contains signs of AD or Normal Cognitive functions (NC).
 
-In this git repository, I hope to demonstrate a vision model that can classify Alzheimer's disease (normal and AD) of the ADNI brain data with an accuracy of 0.8. The vision model implemented to achieve this task is the ConvNeXt model.
+The developed model aims to get a minimum identification accuracy of 0.8/80% when made to run on the test set. For this report, the vision model being focused on will be the ConvNeXt model, a
 
 ## Background information
 ### What is a ConvNeXt model?
@@ -152,9 +152,11 @@ To confirm the results the predict.py file was run giving the follow confusion m
           AD       0.73      0.91      0.81      4540
     accuracy                           0.79      9000
 ```
+Which shows that the model achieves what we set out to do.
 
 ## Plots and Figures
 Plot 1: First Attempt to Train Plot
+
 ![Plot 1: First attempt to train](training_curves.png)
 
 Plot 2: Final Attempt to Train Plots
