@@ -103,7 +103,10 @@ Epoch [300/300], Training Loss: 0.1893
 Training took 0.6 minutes
 Epoch [300/300], Validation Loss: 0.5839, Validation Accuracy: 0.7849
 ```
-This looks good as the training loss is 
+Which resulted in the plot shown in Plot 1 in the plot and figures section. Although the Training loss is low and validation Accuracy is high enough, the validation loss was high and from observation, it could be said that the validation loss values platued around epoch 50, and began to increase/ become more erratic as more epochs continued. This is a big indication that overfitting occured in the training process.
+
+To confirm, the predict.py file was run and provided the following output:
+```
  Test Accuracy: 0.6308
 
 Confusion Matrix:
@@ -117,8 +120,30 @@ Classification Report:
           AD       0.60      0.79      0.68      4540
 
     accuracy                           0.63      9000
+```
+
+From this it is obvious that the trained model had overfitted and failed to do the task. To fix this, the following changes were made to the train.py, predict.py, dataset.py and modules.py files.
+
+### modules.py file changes
+In modules.py, a dropout value of 0.3 was introduced to many of the classes to help avoid overfitting in the data while training. Another change was the reduction of layers to decrease the complexity of the data in hopes to cause the model to refrain from fitting in noise from the training data and instead focus on underlying patterns that it can find in the images.
+
+### dataset.py file changes
+In the dataset.py, augmentation was applied to the training transformation by including the following transforms into the trasnform function:
+```
+            transforms.RandomHorizontalFlip(p=0.5),
+            transforms.RandomRotation(degrees=10),
+            transforms.RandomAffine(degrees=0, translate=(0.05, 0.05)),
+            transforms.ColorJitter(brightness=0.2, contrast=0.2),
+            transforms.ToTensor(),
+            transforms.Lambda(lambda x: x.repeat(3, 1, 1)), 
+```
+The augmentation of the training was done in hopes that it would help the model to be more stable by increasing dataset diversity and improving model generalisation. 
+
+### train.py file changes
+The train.py file was modified in many ways. As mentioned above, it was noted that the validation loss plateued at around 50 epochs and began increasing at 60 and above epochs, thus the number of epochs decreased to 60 epochs instead of the 300. Furthermore, the learning rate was altered from 1e-3 to 3e-5 to hopefully increase accuracy.
 
 ## Plots and Figures
 
+![Plot 1: First attempt to train](training_curves.png)
 ## Justification
 
