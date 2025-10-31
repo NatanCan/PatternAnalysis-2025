@@ -11,12 +11,25 @@ from typing import List
 import timm
 import torch
 from torchvision.ops import StochasticDepth
-
-#First implement a resnet model as ConvNeXt starts with a ResNet architecture and then applies a series of transformer-inspired design changes to it.
+from torchvision.ops import StochasticDepth
+"""
+    A sequential container of convolutional, normalization, and activation layers.
+    
+    This utility layer composes (convolution) -> (normalization) -> (activation) operations
+    in sequence for building neural network blocks.
+    
+    Args:
+        in_features (int): Number of input channels/features
+        out_features (int): Number of output channels/features
+        kernel_size (int): Size of the convolutional kernel
+        norm (nn.Module, optional): Normalization layer. Defaults to nn.BatchNorm2d
+        act (nn.Module, optional): Activation function. Defaults to nn.GELU
+        **kwargs: Additional arguments to pass to the convolutional layer
+"""
 class ConvNormAct(nn.Sequential):
-    """
-    A little util layer composed by (conv) -> (norm) -> (act) layers.
-    """
+
+    #A little util layer composed by (conv) -> (norm) -> (act) layers.
+
     def __init__(
         self,
         in_features: int,
@@ -38,12 +51,21 @@ class ConvNormAct(nn.Sequential):
             act(),
         )
 
-#Reduces training time and improves generalization by randomly dropping entire layers during training. Method allows for avoiding vanishing gradients and allowing for
-#regularization.
-#VAnishing gradient - a problem in deep neural network training where the gradients become extremely small as they are backpropagated from the output to the earlier layers.
-#regularization - techniques used to prevent overfitting in machine learning models by adding constraints or penalties to the model's complexity.
-from torchvision.ops import StochasticDepth
 
+
+"""
+    Layer scaling module that applies learnable scaling factors to input tensors.
+    
+    This module introduces learnable scaling parameters (gamma) that are applied
+    to the input tensor, helping with training stability and convergence.
+    Reduces training time and improves generalization by randomly dropping entire 
+    layers during training. Method allows for avoiding vanishing gradients and allowing for
+    regularization.
+    
+    Args:
+        init_value (float): Initial value for the scaling parameters
+        dimensions (int): Number of dimensions/channels for the scaling parameters
+"""
 class LayerScaler(nn.Module):
     def __init__(self, init_value: float, dimensions: int):
         super().__init__()
@@ -53,13 +75,27 @@ class LayerScaler(nn.Module):
     def forward(self, x):
         return self.gamma[None,...,None,None] * x
 
+"""
+    Bottleneck block for ConvNeXt architecture.
+    
+    This block implements a bottleneck structure with depth-wise convolution,
+    layer normalization, and stochastic depth for regularization. It follows
+    a ResNet-like structure with transformer-inspired modifications.
+    
+    Args:
+        in_features (int): Number of input channels
+        out_features (int): Number of output channels
+        expansion (int, optional): Expansion factor for intermediate features. Defaults to 4
+        drop_p (float, optional): Drop path probability for stochastic depth. Defaults to 0.3
+        layer_scaler_init_value (float, optional): Initial value for layer scaling. Defaults to 1e-6
+"""
 class BottleNeck(nn.Module):
     def __init__(
         self,
         in_features: int,
         out_features: int,
         expansion: int = 4,
-        drop_p: float = .0,
+        drop_p: float = 0.3,
         layer_scaler_init_value: float = 1e-6,
     ):
         super().__init__()
@@ -95,12 +131,18 @@ class BottleNeck(nn.Module):
     
 
 """
-#Check if the code above works    
-x = torch.rand(1, 32, 7, 7)
-block = BottleNeck(32, 64)
+    A stage in the ConvNeXt architecture consisting of multiple bottleneck blocks.
+    
+    Each stage typically reduces the spatial dimensions by a factor of 2 and
+    increases the channel dimensions. It contains a downsampling layer followed
+    by multiple bottleneck blocks.
+    
+    Args:
+        in_features (int): Number of input channels
+        out_features (int): Number of output channels
+        depth (int): Number of bottleneck blocks in this stage
+        **kwargs: Additional arguments passed to BottleNeck blocks
 """
-
-#Code to define a stage, which is a sequence of bottleneck blocks that reduce in size as stages progress by a factor of 2.
 class ConvNexStage(nn.Sequential):
     def __init__(
         self, in_features: int, out_features: int, depth: int, **kwargs
@@ -117,12 +159,16 @@ class ConvNexStage(nn.Sequential):
             ],
         )
 
-#Check staging class works as intended
 """
-stage = ConvNexStage(32, 64, depth=1)
-stage(torch.randn(1, 32, 14, 14)).shape
+    Stem module for ConvNeXt that performs initial heavy downsampling.
+    
+    The stem is the first layer in the model that processes the input image
+    and performs aggressive spatial reduction while expanding channels.
+    
+    Args:
+        in_features (int): Number of input channels (typically 3 for RGB images)
+        out_features (int): Number of output channels after the stem
 """
-#Simulates the first layer in the model that does the heavy downsampling of the input image.
 class ConvNextStem(nn.Sequential):
     def __init__(self, in_features: int, out_features: int):
         super().__init__(
@@ -132,7 +178,20 @@ class ConvNextStem(nn.Sequential):
             nn.BatchNorm2d(out_features),
         )
 
-#A class that holds a list of stages and takes an image as input producing the final embeddings.
+"""
+    ConvNeXt encoder that processes input through multiple stages.
+    
+    The encoder consists of a stem followed by a series of stages that
+    progressively extract features at different spatial resolutions and
+    channel dimensions.
+    
+    Args:
+        in_channels (int): Number of input image channels
+        stem_features (int): Number of output channels from the stem
+        depths (List[int]): List of depths (number of blocks) for each stage
+        widths (List[int]): List of widths (channel dimensions) for each stage
+        drop_p (float, optional): Maximum drop path probability. Defaults to 0.3
+"""
 class ConvNextEncoder(nn.Module):
     def __init__(
         self,
@@ -140,7 +199,7 @@ class ConvNextEncoder(nn.Module):
         stem_features: int,
         depths: List[int],
         widths: List[int],
-        drop_p: float = 0.0,
+        drop_p: float = 0.3,
     ):
         super().__init__()
         self.stem = ConvNextStem(in_channels, stem_features)
@@ -167,12 +226,16 @@ class ConvNextEncoder(nn.Module):
         for stage in self.stages:
             x = stage(x)
         return x
+
 """
-#code to check if the ConvNextEncoder works as intended
-image = torch.rand(1, 3, 224, 224)
-encoder = ConvNextEncoder(in_channels=3, stem_features=64, depths=[3,4,6,4], widths=[256, 512, 1024, 2048])
-print(encoder(image).shape)
-print(stage(torch.randn(1, 32, 14, 14)).shape)
+    Classification head for ConvNeXt that produces final class predictions.
+    
+    This head performs global average pooling, normalization, dropout,
+    and final linear projection to the number of classes.
+    
+    Args:
+        num_channels (int): Number of input channels from the encoder
+        num_classes (int, optional): Number of output classes. Defaults to 1000
 """
 class ClassificationHead(nn.Sequential):
     def __init__(self, num_channels: int, num_classes: int = 1000):
@@ -180,32 +243,55 @@ class ClassificationHead(nn.Sequential):
             nn.AdaptiveAvgPool2d((1, 1)),
             nn.Flatten(1),
             nn.LayerNorm(num_channels),
+            nn.Dropout(0.4), 
             nn.Linear(num_channels, num_classes)
         )
     
+"""
+    Complete ConvNeXt model for image classification tasks.
     
+    This model combines the ConvNeXt encoder with a classification head
+    to form a complete image classification pipeline.
+    
+    Args:
+        in_channels (int): Number of input image channels
+        stem_features (int): Number of output channels from the stem
+        depths (List[int]): List of depths for each stage
+        widths (List[int]): List of widths for each stage
+        drop_p (float, optional): Maximum drop path probability. Defaults to 0.3
+        num_classes (int, optional): Number of output classes. Defaults to 1000
+"""    
 class ConvNextForImageClassification(nn.Sequential):
     def __init__(self,  
                  in_channels: int,
                  stem_features: int,
                  depths: List[int],
                  widths: List[int],
-                 drop_p: float = .0,
+                 drop_p: float = 0.3,
                  num_classes: int = 1000):
         super().__init__()
         self.encoder = ConvNextEncoder(in_channels, stem_features, depths, widths, drop_p)
         self.head = ClassificationHead(widths[-1], num_classes)
 
-
+"""
+    ADNI-specific ConvNeXt model for medical image classification.
+    
+    This is a specialized ConvNeXt model configured for ADNI dataset
+    with specific architecture parameters optimized for the task.
+    
+    Args:
+        in_features (int, optional): Number of input channels. Defaults to 3
+        out_features (int, optional): Number of output classes. Defaults to 2
+"""
 class ADNIConvNeXt(nn.Module):
-    def __init__(self, in_features=1, out_features=2):
+    def __init__(self, in_features=3, out_features=2):
         super().__init__()
         self.model = ConvNextForImageClassification(
             in_channels=in_features,
-            stem_features=96,          # smaller model variant (ConvNeXt-Tiny)
-            depths=[3,3,9,3],
-            widths=[96, 192, 384, 768],
-            drop_p=0.1,
+            stem_features=48,          # smaller model variant (ConvNeXt-Tiny)
+            depths=[2,2,4,2],
+            widths=[48, 96, 192, 384],
+            drop_p=0.3,
             num_classes=out_features
         )
 
