@@ -76,7 +76,7 @@ Validation: 20%
 Testing: 100%
 
 ### Justification of Data Split
-This split strategy ensures sufficient training data for convergence while maintaining adequate samples for reliable validation. Since the testing data was in its own file, separate to the training images, it was not necessary to split and could test using the full file with no drawbacks.
+This split strategy ensures sufficient training data for convergence while maintaining adequate samples for reliable validation. Although the ConvNeXt model does not require as much data as a Visual Transformers need, we will not reduce the size of the total training set due to the overfitting issues that will be discussed later. Since the testing data was in its own file, separate to the training images, it was not necessary to split, and we could test using the full file with no drawbacks.
 
 ## Example inputs and outputs
 An example input and output you might expect would be:
@@ -97,13 +97,14 @@ example output:
 ```
 
 ## Results
-Our final epoch in the train file gives the following output.
+### First training results
+Our final epoch in the train file gives the following output:
 ```
 Epoch [300/300], Training Loss: 0.1893
 Training took 0.6 minutes
 Epoch [300/300], Validation Loss: 0.5839, Validation Accuracy: 0.7849
 ```
-Which resulted in the plot shown in Plot 1 in the plot and figures section. Although the Training loss is low and validation Accuracy is high enough, the validation loss was high and from observation, it could be said that the validation loss values platued around epoch 50, and began to increase/ become more erratic as more epochs continued. This is a big indication that overfitting occured in the training process.
+Which resulted in the plot shown in Plot 1 in the plot and figures section. Although the Training loss is low and validation Accuracy is high enough, the validation loss was high and from observation, it could be said that the validation loss values plateaued around epoch 50, and began to increase/ become more erratic as more epochs continued. This is a big indication that overfitting occured in the training process.
 
 To confirm, the predict.py file was run and provided the following output:
 ```
@@ -124,10 +125,10 @@ Classification Report:
 
 From this it is obvious that the trained model had overfitted and failed to do the task. To fix this, the following changes were made to the train.py, predict.py, dataset.py and modules.py files.
 
-### modules.py file changes
+#### modules.py file changes
 In modules.py, a dropout value of 0.3 was introduced to many of the classes to help avoid overfitting in the data while training. Another change was the reduction of layers to decrease the complexity of the data in hopes to cause the model to refrain from fitting in noise from the training data and instead focus on underlying patterns that it can find in the images.
 
-### dataset.py file changes
+#### dataset.py file changes
 In the dataset.py, augmentation was applied to the training transformation by including the following transforms into the trasnform function:
 ```
             transforms.RandomHorizontalFlip(p=0.5),
@@ -139,11 +140,21 @@ In the dataset.py, augmentation was applied to the training transformation by in
 ```
 The augmentation of the training was done in hopes that it would help the model to be more stable by increasing dataset diversity and improving model generalisation. 
 
-### train.py file changes
+#### train.py file changes
 The train.py file was modified in many ways. As mentioned above, it was noted that the validation loss plateued at around 50 epochs and began increasing at 60 and above epochs, thus the number of epochs decreased to 60 epochs instead of the 300. Furthermore, the learning rate was altered from 1e-3 to 3e-5 to hopefully increase accuracy.
+### Final Training attempt with changes
+After the re-training, the output of the file is as follows:
+
+To confirm the results the predict.py file was run giving the follow confusion matrix:
+```
+              precision    recall  f1-score   support
+      Normal       0.88      0.66      0.76      4460
+          AD       0.73      0.91      0.81      4540
+    accuracy                           0.79      9000
+```
 
 ## Plots and Figures
-
+Plot 1: First Attempt to Train Plot
 ![Plot 1: First attempt to train](training_curves.png)
-## Justification
 
+Plot 2: Final Attempt to Train Plots
