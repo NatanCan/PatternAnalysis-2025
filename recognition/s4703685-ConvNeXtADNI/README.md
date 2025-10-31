@@ -142,9 +142,31 @@ The augmentation of the training was done in hopes that it would help the model 
 
 #### train.py file changes
 The train.py file was modified in many ways. As mentioned above, it was noted that the validation loss plateued at around 50 epochs and began increasing at 60 and above epochs, thus the number of epochs decreased to 60 epochs instead of the 300. Furthermore, the learning rate was altered from 1e-3 to 3e-5 to hopefully increase accuracy.
+
+### Second attempt to train
+
+As can be seen in plot 2 and 3, the losses seem to both be decreasing and haven't quite reached a plateu yet. Furthermore, the eratic jumping of validation loss has been decreased. The Output of the training gives:
+```
+Epoch [60/60], Validation Loss: 0.6102, Validation Accuracy: 0.7169
+```
+and a predict of
+```
+Test Accuracy: 0.72
+[[2900    1560]
+[ 960    3580]]
+
+                precision    recall  f1-score   support
+      Normal       0.79      0.60      0.68      4460
+          AD       0.68      0.84      0.75      4540
+    accuracy                           0.72      9000
+```
+The graphs were a big indication that overfitting had been some what reduced so a retrain of the model was run before submission.
+
 ### Final Training attempt with changes
 After the re-training, the output of the file is as follows:
-
+```
+Epoch [60/60] | Train Loss: 0.3837 | Val Loss: 0.4431 | Val Acc: 0.7819
+```
 To confirm the results the predict.py file was run giving the follow confusion matrix:
 ```
               precision    recall  f1-score   support
@@ -159,4 +181,9 @@ Plot 1: First Attempt to Train Plot
 
 ![Plot 1: First attempt to train](training_curves.png)
 
-Plot 2: Final Attempt to Train Plots
+Plot 2: Seond Attempt to Train Plots validation loss and training loss
+
+![alt text](../../../COMP3710ReportCode/loss_curvefinbeforere.png) ![alt text](../../../COMP3710ReportCode/val_accuracy_curvefinbeforere.png)
+
+Plot 3: Second Attempt to Train Plots Validastion accuracy
+![alt text](val_accuracy_curvefinbeforere.png)
