@@ -183,7 +183,7 @@ Plot 1: First Attempt to Train Plot
 
 Plot 2: Seond Attempt to Train Plots validation loss and training loss
 
-![alt text](../../../COMP3710ReportCode/loss_curvefinbeforere.png) 
+![alt text]([[../../../COMP3710ReportCode/loss_curvefinbeforere.png](https://github.com/NatanCan/PatternAnalysis-2025/blob/topic-recognition/recognition/s4703685-ConvNeXtADNI/loss_curvefinbeforere.png)]) 
 
 Plot 3: Second Attempt to Train Plots Validastion accuracy
 ![alt text](val_accuracy_curvefinbeforere.png)
